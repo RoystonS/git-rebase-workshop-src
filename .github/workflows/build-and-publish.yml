@@ -41,7 +41,7 @@ jobs:
         run: |
           cd output/repo
           git remote add target https://x-access-token:${{ secrets.GH_PAT }}@github.com/RoystonS/git-rebase-workshop.git
-          git push target main --force
+          git push --all target --force
 
       - name: Install pandoc for markdown-to-HTML conversion
         shell: bash
