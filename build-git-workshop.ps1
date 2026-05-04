@@ -9,8 +9,9 @@ $COMMIT_INTERVAL_SECONDS = 300   # seconds between commits
 
 $_commit_ts = [DateTimeOffset]::new((Get-Date $COMMIT_START_DATE), [TimeSpan]::Zero).ToUnixTimeSeconds()
 
-# Hashtable to map commit names to their SHA hashes
+# Hashtable to map commit names to their SHA hashes and timestamps
 $script:commitHashes = @{}
+$script:commitTimes = @{}
 
 function Submit-Commit-With-Date {
     param(
@@ -26,6 +27,7 @@ function Submit-Commit-With-Date {
     $sha = git rev-parse HEAD
     if ($Name) {
         $script:commitHashes[$Name] = $sha
+        $script:commitTimes[$Name] = (Get-Date -UnixTimeSeconds $_commit_ts).ToString("HH:mm")
     }
 }
 
@@ -70,7 +72,30 @@ Submit-Commit-With-Date "Initialize repo"
 # Create the solution
 dotnet new solution --format slnx --name Demo
 git add *.slnx
-Submit-Commit-With-Date "Add Demo solution"
+Submit-Commit-With-Date "Add Demo solution" -Name "prefork"
+
+dotnet new console --name OtherApp
+dotnet solution Demo.slnx add OtherApp/OtherApp.csproj
+
+Set-Location OtherApp
+
+# Add a vulnerable package
+dotnet package add OpenTelemetry.Api -v 1.15.2
+
+@"
+using System;
+using System.Collections.Generic;
+using OpenTelemetry.Logs;
+
+var loggerType = typeof(OpenTelemetry.Logs.Logger);
+var assemblyName = loggerType.GetAssembly().GetName();
+Console.WriteLine($"OpenTelemetry: \${assemblyName}");
+"@ | Set-Content -Path Program.cs
+Set-Location ..
+
+git add OtherApp/OtherApp.csproj OtherApp/Program.cs
+
+Submit-Commit-With-Date "Add OpenTelemetry consumer"
 
 git tag forkpoint
 
@@ -89,7 +114,7 @@ dotnet solution Demo.slnx add TaskApp/TaskApp.csproj
 
 git add *.slnx TaskApp/Program.cs TaskApp/*.csproj
 
-Submit-Commit-With-Date "Create TaskApp project" -60
+Submit-Commit-With-Date "Create TaskApp project" -Interval "-60" -Name "postfork"
 
 Set-Location TaskApp
 
@@ -117,7 +142,7 @@ foreach (var task in tasks)
 
 dotnet build
 git add .
-Submit-Commit-With-Date "Add basic task list" -60 -Name "flobble"
+Submit-Commit-With-Date "Add basic task list" -60 -Name "first_bad_bin_obj"
 
 # ---- Start messy history ----
 
@@ -152,10 +177,13 @@ Submit-Commit-With-Date "Add task filtering"
 
 # 2 - Debug logging added
 $content = Get-Content -Path Program.cs -Raw
-"Console.WriteLine(""DEBUG: starting app""); `r`n$content" | Set-Content -Path Program.cs
+@"
+Console.WriteLine(""DEBUG: starting app"");
+
+"@ | Add-Content -Path Program.cs
 
 git add .
-Submit-Commit-With-Date "Add debug startup log"
+Submit-Commit-With-Date "Add debug startup log" -Name debug1
 
 # 3 - Case-insensitive fix
 (Get-Content -Path Program.cs -Raw) -replace 'Contains\(filter\)', 'ToLower().Contains(filter.ToLower())' | Set-Content -Path Program.cs
@@ -165,6 +193,7 @@ Submit-Commit-With-Date "Fix filter case handling"
 
 # 4 - Add helper function (but not fully used yet)
 @"
+Console.WriteLine("DEBUG: starting app"); 
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -213,11 +242,6 @@ Submit-Commit-With-Date "Add TODO for completed tasks"
 git add .
 Submit-Commit-With-Date "Add temporary notes file"
 
-# 8 - Remove debug (but not all)
-(Get-Content -Path Program.cs) | Where-Object { $_ -notmatch 'DEBUG' } | Set-Content -Path Program.cs
-git add .
-Submit-Commit-With-Date "Remove debug startup log"
-
 # 9 - Formatting change mixed with logic
 (Get-Content -Path Program.cs -Raw) -replace 'Console\.WriteLine\(task\);', 'Console.WriteLine("- " + task);' | Set-Content -Path Program.cs
 git add .
@@ -229,12 +253,12 @@ Submit-Commit-With-Date "Prefix task output with dash"
 # Build, so we cause issues later, having changed the obj/ + bin/ files
 dotnet build
 git add .
-Submit-Commit-With-Date "Handle null filter input"
+Submit-Commit-With-Date "Handle null filter input" -Name "second_bad_bin_obj"
 
 # 11 - More debug added again
 'Console.WriteLine("DEBUG: filter=" + filter);' | Add-Content -Path Program.cs
 git add .
-Submit-Commit-With-Date "Log filter value for debugging"
+Submit-Commit-With-Date "Log filter value for debugging" -Name debug2
 
 # 12 - Partial refactor (rename variable)
 (Get-Content -Path Program.cs -Raw) -replace 'tasks', 'taskList' | Set-Content -Path Program.cs
@@ -246,11 +270,6 @@ Submit-Commit-With-Date "Rename tasks variable to taskList"
 git add .
 Submit-Commit-With-Date "Add small tweak comment"
 
-# 14 - Remove some debug again
-(Get-Content -Path Program.cs) | Where-Object { $_ -notmatch 'DEBUG' } | Set-Content -Path Program.cs
-git add .
-Submit-Commit-With-Date "Remove debug log lines"
-
 # 15 - Add minor feature (prefix numbering)
 $content = Get-Content -Path Program.cs -Raw
 $content = $content -replace 'foreach \(var task in filtered\)', 'int i=1; foreach (var task in filtered)'
@@ -259,6 +278,15 @@ $content | Set-Content -Path Program.cs
 
 git add .
 Submit-Commit-With-Date "Number filtered task output"
+
+# Fix OpenTelemetry.Api vulnerability
+Set-Location ..
+Set-Location OtherApp
+dotnet package update OpenTelemetry.Api
+git add OtherApp.csproj
+Submit-Commit-With-Date "Fix OpenTelemetry.Api vulnerability" -Name fixvulnerability
+Set-Location ..
+Set-Location TaskApp
 
 # 16 - Oops fix
 "// fix later" | Add-Content -Path Program.cs
@@ -270,20 +298,26 @@ Submit-Commit-With-Date "Oops"
 git add .
 Submit-Commit-With-Date "Update notes"
 
-# 18 - Final messy state
-git add .
-Submit-Commit-With-Date "Apply final workshop changes"
+# Create a .gitignore. A bit too late
+Set-Location ..
+@"
+bin/
+obj/
+"@ | Set-Content -Path .gitignore
+git add .gitignore
+Submit-Commit-With-Date "Add .gitignore" -Name "addgitignore"
 
-# Generate WORKSHOP.md from template, replacing <COMMIT:name> with actual SHAs
+# Generate WORKSHOP.md from template, replacing placeholders with actual values
 Set-Location $script:initialLocation
 $template = Get-Content -Path WORKSHOP.template.md -Raw
 foreach ($key in $script:commitHashes.Keys) {
-    $template = $template -replace "<COMMIT:$key>", $script:commitHashes[$key]
+    $template = $template -replace "<COMMIT_SHA:$key>", $script:commitHashes[$key]
+    $template = $template -replace "<COMMIT_TIME:$key>", $script:commitTimes[$key]
 }
 
-# Check for any unresolved <COMMIT:XXX> references
-if ($template -match '<COMMIT:\w+>') {
-    $unresolved = [regex]::Matches($template, '<COMMIT:\w+>') | ForEach-Object { $_.Value }
+# Check for any unresolved <COMMIT_XXX:name> references
+if ($template -match '<COMMIT_\w+:\w+>') {
+    $unresolved = [regex]::Matches($template, '<COMMIT_\w+:\w+>') | ForEach-Object { $_.Value }
     Write-Warning "Unresolved commit placeholders found in template: $($unresolved -join ', ')"
 }
 
