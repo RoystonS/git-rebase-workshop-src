@@ -17,7 +17,7 @@ function Submit-Commit-With-Date {
     param(
         [string]$Message,
         [int]$Interval = $COMMIT_INTERVAL_SECONDS,
-        [string]$Name = ""
+        [string[]]$Name = @()
     )
     $script:_commit_ts = $_commit_ts + $Interval
     $ts = (Get-Date -UnixTimeSeconds $_commit_ts).ToString("yyyy-MM-ddTHH:mm:ss")
@@ -25,9 +25,11 @@ function Submit-Commit-With-Date {
     $env:GIT_COMMITTER_DATE = $ts
     git commit -m $Message
     $sha = git rev-parse HEAD
-    if ($Name) {
-        $script:commitHashes[$Name] = $sha
-        $script:commitTimes[$Name] = (Get-Date -UnixTimeSeconds $_commit_ts).ToString("HH:mm")
+    foreach ($n in $Name) {
+        if ($n) {
+            $script:commitHashes[$n] = $sha
+            $script:commitTimes[$n] = (Get-Date -UnixTimeSeconds $_commit_ts).ToString("HH:mm")
+        }
     }
 }
 
@@ -132,7 +134,7 @@ dotnet solution Demo.slnx add TaskApp/TaskApp.csproj
 
 git add *.slnx TaskApp/Program.cs TaskApp/*.csproj
 
-Submit-Commit-With-Date "Create TaskApp project" -Interval "-60" -Name "postfork"
+Submit-Commit-With-Date "Create TaskApp project" -Interval "-60" -Name "postfork", "createproject"
 
 Set-Location TaskApp
 
@@ -160,7 +162,7 @@ foreach (var task in tasks)
 
 dotnet build
 git add .
-Submit-Commit-With-Date "Add basic task list" -60 -Name "first_bad_bin_obj"
+Submit-Commit-With-Date "Add basic task list" -60 -Name "first_bad_bin_obj", "startapp"
 
 # ---- Start messy history ----
 
@@ -210,7 +212,9 @@ git add .
 Submit-Commit-With-Date "Fix filter case handling"
 
 # 4 - Add helper function (but not fully used yet)
+# but also jam Serilog support in there. Naughty naughty.
 @"
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -230,10 +234,17 @@ var tasks = new List<string>
     "Fix bug"
 };
 
+var logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.Console()
+    .CreateLogger();
+
 Console.WriteLine("Enter filter:");
 var filter = Console.ReadLine();
 
 var filtered = tasks.Where(t => t.Contains(filter)).ToList();
+
+logger.Information("Generating tasklist");
 
 Console.WriteLine("Tasks:");
 foreach (var task in filtered)
@@ -242,28 +253,31 @@ foreach (var task in filtered)
 }
 "@ | Set-Content -Path Program.cs
 
-git add .
+dotnet package add Serilog
+dotnet package add Serilog.Sinks.Console
+
+git add Program.cs *.csproj
 Submit-Commit-With-Date "Add Matches helper function"
 
 # 5 - Start using helper (mixed change)
 (Get-Content -Path Program.cs -Raw) -replace 't\.Contains\(filter\)', 'Matches(t, filter)' | Set-Content -Path Program.cs
 
-git add .
+git add Program.cs
 Submit-Commit-With-Date "Use Matches helper in filter"
 
 # 6 - Add new feature: exclude completed (fake)
 "// TODO: exclude completed tasks" | Add-Content -Path Program.cs
-git add .
+git add Program.cs
 Submit-Commit-With-Date "Add TODO for completed tasks"
 
 # 7 - Add unrelated file in same commit
 "Temporary notes" | Out-File -FilePath notes.txt
-git add .
+git add Program.cs
 Submit-Commit-With-Date "Add temporary notes file"
 
 # 9 - Formatting change mixed with logic
 (Get-Content -Path Program.cs -Raw) -replace 'Console\.WriteLine\(task\);', 'Console.WriteLine("- " + task);' | Set-Content -Path Program.cs
-git add .
+git add Program.cs
 Submit-Commit-With-Date "Prefix task output with dash"
 
 # 10 - Bug: null filter crash fix

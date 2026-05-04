@@ -230,10 +230,10 @@ Keep the project-creation commit separate.
 
 ### Solution
 
-1. Run an interactive rebase, back to the <COMMIT_TIME:postfork> commit
+1. Run an interactive rebase, back to the <COMMIT_TIME:createproject> commit
 1. Mark all of the commits except for the
-   commit after <COMMIT_TIME:first_bad_bin_obj> as 'Fixup'
-1. Mark the <COMMIT_TIME:first_bad_bin_obj> as 'Reword'
+   commit after <COMMIT_TIME:startapp> as 'Fixup'
+1. Mark the <COMMIT_TIME:startapp> commit as 'Reword'
 1. Give the Reworded commit a better comment (don't worry too much about
    it as that isn't the focus here) and run/complete the rebase
 
@@ -246,3 +246,46 @@ But, in previous steps we:
 - extracted a vulnerability fix into another PR
 - removed all the temporary debug messages without having to hunt them down individually
 - tidied the final PR whilst maintaining control of the commit message
+
+## Extra credit
+
+(This one's a little tricker, and involves partial staging of changes.)
+
+Oh dear. We did a big squash, but now we've noticed that one of the little
+intermediate commits was a bit mis-labelled. It was supposed to be just
+adding a helper function, but it actually added a new dependency on Serilog,
+and added Serilog support.
+
+We really should pull that out into a separate commit.
+
+### Problem
+
+Pull the addition of the Serilog dependencies and the Serilog code out into a new
+commit.
+
+We could put it before or after the bit squashed commit, but to keep
+it easy, put it after. We can always reorder it later.
+
+(1There are multiple ways to do this.)
+
+### Solution 1
+
+1. Start an interactive rebase, editing the squashed commit
+1. Unstage the changes from `TaskApp.csproj`
+1. Unstage the Serilog-specific code from `Program.cs`.
+   Don't unstage the whole of `Program.cs`; just the three Serilog sections (the `using`, the `logger` creation and the `logger.Information()` call)
+1. Amend the commit
+1. Take the `.csproj` changes and `Program.cs` changes and put them in a  
+   new commit
+1. Finish the rebase
+
+We split the commit in two using an interactive rebase.
+
+### Solution 2
+
+This is almost identical, but uses an 'amend commit' operation
+instead of an interactive rebase. This is only possible because
+the commit we want to edit is the _last_ commit in the repo.
+
+1. Start an amend-commit, and follow the steps from the above solution
+   from where the interactive rebase began
