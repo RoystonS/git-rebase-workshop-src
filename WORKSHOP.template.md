@@ -23,7 +23,7 @@ want to just squash everything down to a single commit.
 ### Remove stray files
 
 Oops, we checked in a bunch of `bin/` and `obj/` files by mistake
-very early on in the commits (at 09:05).
+very early on in the commits (at <COMMIT:flobble>).
 
 We don't want to remove the entire commit as it does contain the initial
 `Program.cs` code.
@@ -35,7 +35,7 @@ Using an interactive rebase, edit that commit and remove the obj/ entries.
 #### Solution
 
 1. Begin an interactive rebase back to the 09:00 commit
-1. Edit the 09:05 commit
+1. Edit the <COMMIT:flobble> commit
 1. Unstage and discard the files from `bin/` and `obj/`
 1. Continue the rebase
 1. You'll see a conflict with a later commit, as that commit made changes to the

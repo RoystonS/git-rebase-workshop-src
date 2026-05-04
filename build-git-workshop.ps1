@@ -9,19 +9,30 @@ $COMMIT_INTERVAL_SECONDS = 300   # seconds between commits
 
 $_commit_ts = [DateTimeOffset]::new((Get-Date $COMMIT_START_DATE), [TimeSpan]::Zero).ToUnixTimeSeconds()
 
+# Hashtable to map commit names to their SHA hashes
+$script:commitHashes = @{}
+
 function Submit-Commit-With-Date {
     param(
         [string]$Message,
-        [int]$Interval = $COMMIT_INTERVAL_SECONDS
+        [int]$Interval = $COMMIT_INTERVAL_SECONDS,
+        [string]$Name = ""
     )
     $script:_commit_ts = $_commit_ts + $Interval
     $ts = (Get-Date -UnixTimeSeconds $_commit_ts).ToString("yyyy-MM-ddTHH:mm:ss")
     $env:GIT_AUTHOR_DATE = $ts
     $env:GIT_COMMITTER_DATE = $ts
     git commit -m $Message
+    $sha = git rev-parse HEAD
+    if ($Name) {
+        $script:commitHashes[$Name] = $sha
+    }
 }
 
 $REPO_NAME = "git-rebase-workshop"
+
+# Store initial location for navigation
+$script:initialLocation = Get-Location
 
 # Clean up and create repo directory
 if (Test-Path $REPO_NAME) {
@@ -106,7 +117,7 @@ foreach (var task in tasks)
 
 dotnet build
 git add .
-Submit-Commit-With-Date "Add basic task list"
+Submit-Commit-With-Date "Add basic task list" -60 -Name "flobble"
 
 # ---- Start messy history ----
 
@@ -262,6 +273,21 @@ Submit-Commit-With-Date "Update notes"
 # 18 - Final messy state
 git add .
 Submit-Commit-With-Date "Apply final workshop changes"
+
+# Generate WORKSHOP.md from template, replacing <COMMIT:name> with actual SHAs
+Set-Location $script:initialLocation
+$template = Get-Content -Path WORKSHOP.template.md -Raw
+foreach ($key in $script:commitHashes.Keys) {
+    $template = $template -replace "<COMMIT:$key>", $script:commitHashes[$key]
+}
+
+# Check for any unresolved <COMMIT:XXX> references
+if ($template -match '<COMMIT:\w+>') {
+    $unresolved = [regex]::Matches($template, '<COMMIT:\w+>') | ForEach-Object { $_.Value }
+    Write-Warning "Unresolved commit placeholders found in template: $($unresolved -join ', ')"
+}
+
+$template | Out-File -FilePath WORKSHOP.md
 
 Write-Host ""
 Write-Host "Repo created!"
