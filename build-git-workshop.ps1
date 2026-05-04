@@ -83,13 +83,9 @@ Set-Location OtherApp
 dotnet package add OpenTelemetry.Api -v 1.15.2
 
 @"
-using System;
-using System.Collections.Generic;
-using OpenTelemetry.Logs;
-
-var loggerType = typeof(OpenTelemetry.Logs.Logger);
-var assemblyName = loggerType.GetAssembly().GetName();
-Console.WriteLine($"OpenTelemetry: \${assemblyName}");
+var loggerType = typeof(OpenTelemetry.BaseProvider);
+var assemblyName = loggerType.Assembly.GetName();
+Console.WriteLine($"OpenTelemetry: {assemblyName}");
 "@ | Set-Content -Path Program.cs
 Set-Location ..
 
@@ -177,26 +173,27 @@ Submit-Commit-With-Date "Add task filtering"
 
 # 2 - Debug logging added
 $content = Get-Content -Path Program.cs -Raw
-@"
-Console.WriteLine(""DEBUG: starting app"");
-
-"@ | Add-Content -Path Program.cs
+$content = $content -replace "using System.Linq;", "using System.Linq;`r`n`r`nConsole.WriteLine(""DEBUG: starting app"");"
+[System.IO.File]::WriteAllText((Resolve-Path Program.cs), $content)
 
 git add .
 Submit-Commit-With-Date "Add debug startup log" -Name debug1
 
 # 3 - Case-insensitive fix
-(Get-Content -Path Program.cs -Raw) -replace 'Contains\(filter\)', 'ToLower().Contains(filter.ToLower())' | Set-Content -Path Program.cs
+$content = Get-Content -Path Program.cs -Raw
+$content = $content -replace 'Contains\(filter\)', 'ToLower().Contains(filter.ToLower())'
+[System.IO.File]::WriteAllText((Resolve-Path Program.cs), $content)
 
 git add .
 Submit-Commit-With-Date "Fix filter case handling"
 
 # 4 - Add helper function (but not fully used yet)
 @"
-Console.WriteLine("DEBUG: starting app"); 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+Console.WriteLine("DEBUG: starting app");
 
 bool Matches(string task, string filter)
 {
@@ -261,7 +258,9 @@ git add .
 Submit-Commit-With-Date "Log filter value for debugging" -Name debug2
 
 # 12 - Partial refactor (rename variable)
-(Get-Content -Path Program.cs -Raw) -replace 'tasks', 'taskList' | Set-Content -Path Program.cs
+$content = Get-Content -Path Program.cs -Raw
+$content = $content -replace 'tasks', 'taskList'
+[System.IO.File]::WriteAllText((Resolve-Path Program.cs), $content)
 git add .
 Submit-Commit-With-Date "Rename tasks variable to taskList"
 
