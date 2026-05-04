@@ -1,0 +1,7 @@
+# Project Architecture
+
+This is a Powershell repo containing a script which creates a sample Git repository with history, for an interactive workshop on Git interactive rebasing.
+
+## Coding Standards
+
+Use Powershell Core
