@@ -199,7 +199,7 @@ $content = $content -replace "using System.Linq;", "using System.Linq;`r`n`r`nCo
 [System.IO.File]::WriteAllText((Resolve-Path Program.cs), $content)
 
 git add .
-Submit-Commit-With-Date "Add debug startup log" -Name debug1
+Submit-Commit-With-Date "DEBUG: add startup log" -Name debug1
 
 # 3 - Case-insensitive fix
 $content = Get-Content -Path Program.cs -Raw
@@ -277,7 +277,7 @@ Submit-Commit-With-Date "Handle null filter input" -Name "second_bad_bin_obj"
 # 11 - More debug added again
 'Console.WriteLine("DEBUG: filter=" + filter);' | Add-Content -Path Program.cs
 git add .
-Submit-Commit-With-Date "Log filter value for debugging" -Name debug2
+Submit-Commit-With-Date "DEBUG: Log filter value" -Name debug2
 
 # 12 - Partial refactor (rename variable)
 $content = Get-Content -Path Program.cs -Raw
