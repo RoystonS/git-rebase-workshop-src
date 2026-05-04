@@ -42,6 +42,11 @@ jobs:
           cd output/repo
           git remote add target https://x-access-token:${{ secrets.GH_PAT }}@github.com/RoystonS/git-rebase-workshop.git
           git push target main --force
+
+      - name: Install pandoc for markdown-to-HTML conversion
+        shell: bash
+        run: sudo apt-get install -y pandoc
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
@@ -49,7 +54,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p _site
-          cp output/site/WORKSHOP.md _site/index.md
+          pandoc output/site/WORKSHOP.md -o _site/index.html --metadata title="Git Interactive Rebase Workshop" -s --to html5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
