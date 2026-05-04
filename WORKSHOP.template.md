@@ -1,8 +1,19 @@
 # Git Interactive Rebase Workshop
 
+This is a repo which simulates a user creating a PR, committing
+early and often during the PR process, and then needing to
+tidy up the PR before final submission, to keep a tidy repo and
+make the life of a PR reviewer easier.
+
+It demonstrates how to do interactive rebases, reordering, merging and dropping
+commits and editing commits to remove unnecessary content.
+
 ## Getting started
 
-1. Clone the repo
+1. Clone the repo from https://github.com/RoystonS/git-rebase-workshop
+1. Switch to the pr/new-work branch
+
+This is the PR branch that you're intending on turning into a tidier PR.
 
 ## Notes
 
