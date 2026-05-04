@@ -54,7 +54,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p _site
-          pandoc output/site/WORKSHOP.md -o _site/index.html --metadata title="Git Interactive Rebase Workshop" -s --to html5
+          cp WORKSHOP.styles _site/styles.css
+          pandoc output/site/WORKSHOP.md -o _site/index.html --standalone --toc --toc-depth 2 --to html5 --css styles.css
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

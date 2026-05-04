@@ -1,4 +1,7 @@
-# Git Interactive Rebase Workshop
+---
+toc: true
+title: Git Interactive Rebase Workshop
+---
 
 This is a repo which simulates a user creating a PR, committing
 early and often during the PR process, and then needing to
@@ -8,22 +11,34 @@ make the life of a PR reviewer easier.
 It demonstrates how to do interactive rebases, reordering, merging and dropping
 commits and editing commits to remove unnecessary content.
 
-## Getting started
+A series of tasks is presented, each with a description of what _Problem_ we're trying to solve.
 
-1. Clone the repo from https://github.com/RoystonS/git-rebase-workshop
-1. Switch to the pr/new-work branch
+There's then a _Solution_ presented which demonstrates
+some features of Git interactive rebases or similar.
+
+If you can solve it without the _Solution_, great!
+It's then worth working through that _Solution_ as you may
+learn something useful from it.
+
+Once you get to the end, can you repeat the whole
+thing without needing to read the Solution sections?
+
+# Getting started
+
+1. Clone the repo from <https://github.com/RoystonS/git-rebase-workshop>
+1. Switch to the `pr/new-work` branch
 
 This is the PR branch that you're intending on turning into a tidier PR.
 
-## Notes
+# Notes
 
 If at any point you discover that you've created a merge commit, stop, and
 go back to a previous step. This is easily done if you create a git tag just
 after each successful step: you can then hard-reset the PR branch to that tag.
 
-## Tasks
+# Tasks
 
-### Familiarisation
+## Familiarisation
 
 Take a look through the repo and its history.
 
@@ -41,7 +56,7 @@ want to just squash everything down to a single commit.
 
 Let's work through some tasks:
 
-### Remove stray files
+## Remove stray files
 
 Oops, we checked in a bunch of `bin/` and `obj/` files by mistake
 very early on in the commits (at <COMMIT_TIME:first_bad_bin_obj>).
@@ -56,11 +71,22 @@ We should ensure they're not present in our branch at all.
 We can't remove the problematic commit entirely as it does contain the initial
 `Program.cs` code.
 
-#### Problem
+### Problem
 
 Using an interactive rebase, edit that commit and remove the `bin/` and `obj/` entries.
 
-#### Solution
+Note that the Git tooling built into Visual Studio doesn't yet support interactive rebases
+([but there is an issue being tracked](https://developercommunity.visualstudio.com/t/Add-support-for-interactive-Git-rebase/580517))
+
+In the meantime, you can use
+
+- the Git command-line tool to run `git rebase -i`
+- [GitLens (free)](https://www.gitkraken.com/gitlens#install-gitlens) with VSCode
+- [Git Fork](https://fork.dev)
+
+  This is by far the easiest tool, but is paid-for. A free trial is available.
+
+### Solution
 
 1. Begin an interactive rebase, back to the <COMMIT_TIME:prefork> commit (where the PR forked)
 1. Edit the <COMMIT_SHA:first_bad_bin_obj> commit (at <COMMIT_TIME:first_bad_bin_obj>)
@@ -71,22 +97,23 @@ Using an interactive rebase, edit that commit and remove the `bin/` and `obj/` e
    Select the files from your temporary rebase branch rather than your PR branch.
 1. Continue and complete the rebase
 
-### Move the `.gitignore` creation to the project creation commit
+## Move the `.gitignore` creation to the project creation commit
 
 Whilst working on the repo, we did notice this problem, and we added a `.gitignore`
 file, in the <COMMIT_TIME:addgitignore> commit.
 
 That's a little late in our set of PR commits.
 
-#### Problem
+### Problem
 
 Having a `.gitignore` file in our PR is good.
+
 Having it so late in the commits in our PR is bad.
 
 Using an interactive rebase, move the commit down and make it part of the
 <COMMIT_TIME:postfork> commit, where the project was created.
 
-#### Solution
+### Solution
 
 We need to edit the <COMMIT_TIME:postfork> commit.
 
@@ -101,18 +128,18 @@ So:
 1. Run the rebase
 1. Look at the <COMMIT_TIME:postfork> commit and see that the `.gitignore` change is now in there too
 
-### Make vulnerability fix available to others
+## Make vulnerability fix available to others
 
 Whilst on that branch we noticed, and fixed, a vulnerable package (after
 an appropriate investigation). Before we do anything else, we want to
 make that fix available to other people.
 
-#### Problem
+### Problem
 
 Pull that change out into a new PR branch so it can be submitted immediately
 as a separate PR, without waiting on the rest of the work from this branch.
 
-#### Solution
+### Solution
 
 This one doesn't require any rebasing. Just a new branch and a cherry-pick.
 
@@ -123,7 +150,7 @@ This one doesn't require any rebasing. Just a new branch and a cherry-pick.
 If we were really doing this in a team environment, we'd be pushing that PR branch
 to share with others.
 
-### Reduce duplication, and update
+## Reduce duplication, and update
 
 We now have that same vulnerability commit twice, once, late on, in our PR,
 and once in another PR destined for `main`.
@@ -133,13 +160,13 @@ Also, as we said earlier, our PR branch is a little out of date with respect to 
 It's unlikely that there will need to be changes to that vulnerability PR,
 so let's assume it will get merged, and base our work off it.
 
-#### Problem
+### Problem
 
 Rebase our PR branch so it picks up the latest changes from main and the vulnerability branch.
 
 Did that clean up our branch structures or make it worse?
 
-#### Solution
+### Solution
 
 1. Check out our PR branch again.
 1. Rebase it (not an interactive rebase) onto the vulnerability PR branch.
@@ -158,7 +185,7 @@ Did that clean up our branch structures or make it worse?
       (based on content, not name or id) commit in the new branch, so it was
       removed.
 
-### Remove debug
+## Remove debug
 
 One of the dangers of simply squashing all the commits down is that it's very
 easy to leave intentionally-temporary changes (e.g. debug logs) in there.
@@ -169,11 +196,11 @@ in their own separate commits (at <COMMIT_TIME:debug1> and <COMMIT_TIME:debug2>)
 So we can now just remove those debug log entries without having to hunt through
 the files looking for them, and without depending on our PR reviewers to spot them.
 
-#### Problem
+### Problem
 
 Remove the debug content.
 
-#### Solution
+### Solution
 
 Earlier we edited a commit to remove the `obj/` and `bin/` files from that commit.
 This one's easier as we can just drop the commits entirely.
@@ -186,3 +213,36 @@ This one's easier as we can just drop the commits entirely.
 
 Ta-da. The temporary debug is gone without our having to hunt it down individually,
 aided by our separating it out into its own commits.
+
+## Big squash
+
+At this point things are relatively tidy.
+
+Let's reduce most of the commits down into one.
+
+### Problem
+
+Reduce most of the commits down into one commit,
+with a specific commit message (not just all
+the temporary commit messages smushed together!)
+
+Keep the project-creation commit separate.
+
+### Solution
+
+1. Run an interactive rebase, back to the <COMMIT_TIME:postfork> commit
+1. Mark all of the commits except for the
+   commit after <COMMIT_TIME:first_bad_bin_obj> as 'Fixup'
+1. Mark the <COMMIT_TIME:first_bad_bin_obj> as 'Reword'
+1. Give the Reworded commit a better comment (don't worry too much about
+   it as that isn't the focus here) and run/complete the rebase
+
+You should now just have two commits left in your PR
+branch.
+
+But, in previous steps we:
+
+- moved the `.gitignore` change into the first of those commits
+- extracted a vulnerability fix into another PR
+- removed all the temporary debug messages without having to hunt them down individually
+- tidied the final PR whilst maintaining control of the commit message
