@@ -56,6 +56,10 @@ Set-Location $repoDir
 
 git init --initial-branch=main
 
+# Configure git user for the generated repo (may not be set in CI)
+git config user.name "Git Rebase Workshop Bot"
+git config user.email "bot@git-rebase-workshop.example.com"
+
 # Create a few basic commits on main
 
 @"

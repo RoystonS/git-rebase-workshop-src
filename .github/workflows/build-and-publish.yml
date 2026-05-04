@@ -1,0 +1,69 @@
+name: Build Workshop Repo & Publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo (RoystonS/git-rebase-workshop-src)
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install PowerShell
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y powershell
+
+      - name: Run workshop build script
+        shell: pwsh
+        run: ./build-git-workshop.ps1
+
+      - name: Force-push generated repo to RoystonS/git-rebase-workshop
+        shell: bash
+        run: |
+          cd output/repo
+          git remote add target https://x-access-token:${{ secrets.GH_PAT }}@github.com/RoystonS/git-rebase-workshop.git
+          git push target main --force
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare Pages site
+        shell: bash
+        run: |
+          mkdir -p _site
+          cp output/site/WORKSHOP.md _site/index.md
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
