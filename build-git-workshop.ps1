@@ -31,19 +31,28 @@ function Submit-Commit-With-Date {
     }
 }
 
-$REPO_NAME = "git-rebase-workshop"
+$OUTPUT_DIR = "output"
+$REPO_NAME = "repo"
+$SITE_NAME = "site"
 
 # Store initial location for navigation
 $script:initialLocation = Get-Location
 
 # Clean up and create repo directory
-if (Test-Path $REPO_NAME) {
-    Remove-Item -Recurse -Force $REPO_NAME
+$repoDir = Join-Path $OUTPUT_DIR $REPO_NAME
+$siteDir = Join-Path $OUTPUT_DIR $SITE_NAME
+if (Test-Path $repoDir) {
+    Remove-Item -Recurse -Force $repoDir
+}
+if (Test-Path $siteDir) {
+    Remove-Item -Recurse -Force $siteDir
 }
 
-# Create output directory
-New-Item -ItemType Directory -Name $REPO_NAME | Out-Null
-Set-Location $REPO_NAME
+# Create output directories
+New-Item -ItemType Directory -Name $repoDir | Out-Null
+New-Item -ItemType Directory -Name $siteDir | Out-Null
+
+Set-Location $repoDir
 
 git init --initial-branch=main
 
@@ -320,10 +329,8 @@ if ($template -match '<COMMIT_\w+:\w+>') {
     Write-Warning "Unresolved commit placeholders found in template: $($unresolved -join ', ')"
 }
 
-$template | Out-File -FilePath WORKSHOP.md
+$template | Out-File -FilePath (Join-Path $siteDir "WORKSHOP.md")
 
 Write-Host ""
 Write-Host "Repo created!"
-Write-Host "Go to: $REPO_NAME/TaskApp"
 Write-Host ""
-Write-Host "Run: git log --oneline"
