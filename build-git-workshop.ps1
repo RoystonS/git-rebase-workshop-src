@@ -56,9 +56,8 @@ Set-Location $repoDir
 
 git init --initial-branch=main
 
-# Configure git user for the generated repo (may not be set in CI)
-git config user.name "Git Rebase Workshop Bot"
-git config user.email "bot@git-rebase-workshop.example.com"
+git config user.name "Other Developer 1"
+git config user.email "developer1@example.com"
 
 # Create a few basic commits on main
 
@@ -93,6 +92,10 @@ dotnet solution Demo.slnx add OtherApp/OtherApp.csproj
 Set-Location OtherApp
 
 # Add a vulnerable package
+
+git config user.name "Other Developer 2"
+git config user.email "developer2@example.com"
+
 dotnet package add OpenTelemetry.Api -v 1.15.2
 
 @"
@@ -108,15 +111,21 @@ Submit-Commit-With-Date "Add OpenTelemetry consumer"
 
 git tag forkpoint
 
+git config user.name "Other Developer 3"
+git config user.email "developer3@example.com"
+
 # Fix the typo in README.md before committing
 (Get-Content -Path README.md -Raw) -replace 'dottnet', 'dotnet' | Set-Content -Path README.md
 git add README.md
 
-Submit-Commit-With-Date "Fix README typo"
+Submit-Commit-With-Date "Fix README typo" -Interval 600
 
 # Create a PR branch from an earlier point and do some PR work on it to create the TaskApp
 git checkout -b pr/new-work forkpoint
 git tag -d forkpoint
+
+git config user.name "You"
+git config user.email "you@example.com"
 
 dotnet new console --name TaskApp
 dotnet solution Demo.slnx add TaskApp/TaskApp.csproj
@@ -333,7 +342,8 @@ if ($template -match '<COMMIT_\w+:\w+>') {
     Write-Warning "Unresolved commit placeholders found in template: $($unresolved -join ', ')"
 }
 
-$template | Out-File -FilePath (Join-Path $siteDir "WORKSHOP.md")
+$workshopPath = Join-Path $siteDir "WORKSHOP.md"
+$template | Out-File -FilePath $workshopPath
 
 Write-Host ""
 Write-Host "Repo created!"
